@@ -52,6 +52,10 @@ It is still the original 2001 game with all its original content. The one real c
 widescreen; leave it on a 4:3 resolution and it runs exactly like it always did. Preservation, not a
 remaster.
 
+![The main menu in 16:9 widescreen](screenshots/menu.png)
+![Another menu view in widescreen](screenshots/menu-2.png)
+![A bigger battle in widescreen](screenshots/gameplay-3.png)
+
 ## Install
 
 You provide your own copy of the game (English version) and EA's official v1.09 patch,
@@ -66,6 +70,8 @@ in this repo.
 
 First-run setup happens once. There is a plain-English walkthrough in
 [`INSTALL.txt`](INSTALL.txt).
+
+<p align="center"><img src="screenshots/launcher-ui.png" alt="The Emperor Reborn launcher" width="360"></p>
 
 ### Resolution
 
