@@ -5,15 +5,21 @@ name: build
 # The dev machine uses a newer toolset (v145); the runner has VS2022, so we pass -PlatformToolset v143.
 # Pinned to windows-2022 because that image ships the v143 toolset.
 
+# Pushing a tag like v2.5-de1 additionally publishes a GitHub Release with the zip attached.
+
 on:
   push:
-    branches: [ main ]
+    branches: [ main, german-cd-support ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-2022
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -38,15 +44,40 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
 
+      # Tag builds are named after the tag (v2.5-de1 -> EmperorReborn-v2.5-de1.zip), everything else is "ci".
+      - name: Pick package version
+        id: ver
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then v="${GITHUB_REF_NAME#v}"; else v="ci"; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
       - name: Build and package (Release/x86)
         shell: pwsh
-        run: .\package.ps1 -Version ci -PlatformToolset v143
+        run: .\package.ps1 -Version ${{ steps.ver.outputs.version }} -PlatformToolset v143
 
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: EmperorReborn-ci
+          name: EmperorReborn-${{ steps.ver.outputs.version }}
           path: |
-            dist/EmperorReborn-vci.zip
-            dist/EmperorReborn-vci.zip.sha256
+            dist/EmperorReborn-v${{ steps.ver.outputs.version }}.zip
+            dist/EmperorReborn-v${{ steps.ver.outputs.version }}.zip.sha256
           if-no-files-found: error
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Emperor Reborn ${{ github.ref_name }}
+          body: |
+            Build of ${{ github.ref_name }} with support for the German CDs (Emperor: Schlacht um Dune).
+
+            Unzip, put your own v1.09 patch next to EmperorReborn.exe (EM109DE.EXE for the German CDs,
+            EM109EN.EXE for the English ones) and run EmperorReborn.exe. See INSTALL.txt.
+            The EA patch and game data are not included.
+
+            SHA256 of the zip is in the attached .sha256 file; SHA256SUMS.txt inside the zip covers the exe and dll.
+          files: |
+            dist/EmperorReborn-v${{ steps.ver.outputs.version }}.zip
+            dist/EmperorReborn-v${{ steps.ver.outputs.version }}.zip.sha256
