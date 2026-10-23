@@ -5,7 +5,8 @@ name: build
 # The dev machine uses a newer toolset (v145); the runner has VS2022, so we pass -PlatformToolset v143.
 # Pinned to windows-2022 because that image ships the v143 toolset.
 
-# Pushing a tag like v2.5-de1 additionally publishes a GitHub Release with the zip attached.
+# Pushing a tag like v2.5-de1, or pushing to german-cd-support, additionally publishes a GitHub Release with the
+# zip attached (branch builds get the tag v2.5-de-build<run number>, created by the release step).
 
 on:
   push:
@@ -44,13 +45,22 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
 
-      # Tag builds are named after the tag (v2.5-de1 -> EmperorReborn-v2.5-de1.zip), everything else is "ci".
+      # Tag builds are named after the tag (v2.5-de1 -> EmperorReborn-v2.5-de1.zip), german-cd-support builds
+      # are "2.5-de", everything else is "ci".
       - name: Pick package version
         id: ver
         shell: bash
         run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then v="${GITHUB_REF_NAME#v}"; else v="ci"; fi
+          tag=""
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            v="${GITHUB_REF_NAME#v}"; tag="${GITHUB_REF_NAME}"
+          elif [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF_NAME}" = "german-cd-support" ]; then
+            v="2.5-de"; tag="v2.5-de-build${GITHUB_RUN_NUMBER}"
+          else
+            v="ci"
+          fi
           echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Build and package (Release/x86)
         shell: pwsh
@@ -66,12 +76,14 @@ jobs:
           if-no-files-found: error
 
       - name: Publish release
-        if: github.ref_type == 'tag'
+        if: steps.ver.outputs.tag != ''
         uses: softprops/action-gh-release@v2
         with:
-          name: Emperor Reborn ${{ github.ref_name }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Emperor Reborn ${{ steps.ver.outputs.tag }}
           body: |
-            Build of ${{ github.ref_name }} with support for the German CDs (Emperor: Schlacht um Dune).
+            Build of ${{ steps.ver.outputs.tag }} with support for the German CDs (Emperor: Schlacht um Dune).
 
             Unzip, put your own v1.09 patch next to EmperorReborn.exe (EM109DE.EXE for the German CDs,
             EM109EN.EXE for the English ones) and run EmperorReborn.exe. See INSTALL.txt.
