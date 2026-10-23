@@ -88,13 +88,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="EmperorLauncher.cpp" />
+    <ClCompile Include="GameExeCheck.cpp" />
     <ClCompile Include="Installer.cpp" />
     <ClCompile Include="md5.c" />
     <ClCompile Include="NetworkTest.cpp" />
     <ClCompile Include="..\EmperorHooks\ResolveHost.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GameExeCheck.hpp" />
     <ClInclude Include="Installer.hpp" />
+    <ClInclude Include="Localize.hpp" />
+    <ClInclude Include="..\EmperorHooks\DebugLogPatchTable.hpp" />
     <ClInclude Include="md5.h" />
     <ClInclude Include="NetworkTest.hpp" />
     <ClInclude Include="..\EmperorHooks\ResolveHost.hpp" />

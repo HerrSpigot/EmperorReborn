@@ -2,7 +2,10 @@
 #include <string>
 #include "../EmperorHooks/Error.hpp"
 #include "resource.h"
+#include "Localize.hpp"
 #include <filesystem>
+#include <vector>
+#include <algorithm>
 #include <fdi.h>
 #include <fcntl.h>
 #include <corecrt_io.h>
@@ -18,33 +21,78 @@ std::string getExeDir()
   return slash == std::string::npos ? std::string(".") : p.substr(0, slash);
 }
 
-void extractPatchExe(std::string path)
+// The official v1.09 patch exists per language: EM109EN.EXE for the English CDs, EM109DE.EXE for the German
+// ones (some mirrors call it EM109GE.EXE). The patch has to match the language of the discs, otherwise
+// RTPatch refuses to touch the files. We take whichever one the user put next to the launcher, preferring
+// the German one when both are present (an English install never has the German patch lying around).
+static const char* knownPatchNames[] = { "EM109DE.EXE", "EM109GE.EXE", "EM109EN.EXE" };
+
+static std::string findPatchExe()
 {
-  // Copyright note: the official Westwood/EA v1.09 patch (EM109EN.EXE) is NOT
-  // bundled with this program because it is copyrighted by EA/Westwood. The user
-  // must supply their own copy by placing it next to the launcher executable.
-  std::string sourcePath = getExeDir() + "\\EM109EN.EXE";
+  std::string exeDir = getExeDir();
 
-  while (!std::filesystem::exists(sourcePath))
+  for (const char* name : knownPatchNames)
   {
-    std::string message =
-      "The official Westwood/EA v1.09 patch is required but was not found.\n\n"
-      "Please place your own copy of EM109EN.EXE next to EmperorReborn.exe:\n\n    " +
-      sourcePath + "\n\n"
-      "This file is copyrighted by EA/Westwood and is not distributed with Emperor "
-      "Reborn. See README.txt for details.\n\n"
-      "Click OK after you have copied the file, or Cancel to quit.";
-
-    if (MessageBoxA(nullptr, message.c_str(),
-          "Emperor Reborn - EM109EN.EXE required",
-          MB_OKCANCEL | MB_ICONWARNING) == IDCANCEL)
-      exit(1);
+    if (std::filesystem::exists(exeDir + "\\" + name))
+      return name;
   }
 
+  // Anything else that looks like a v1.09 patch (other languages, lowercase names, ...).
   std::error_code ec;
-  std::filesystem::copy_file(sourcePath, path,
+  for (const auto& entry : std::filesystem::directory_iterator(exeDir, ec))
+  {
+    std::string name = entry.path().filename().string();
+    if (name.size() == 11 && _strnicmp(name.c_str(), "EM109", 5) == 0 && _stricmp(name.c_str() + 7, ".EXE") == 0)
+      return name;
+  }
+
+  return "";
+}
+
+// Copies the user's patch exe into the install dir and returns its file name.
+std::string extractPatchExe(const std::string& installDir)
+{
+  // Copyright note: the official Westwood/EA v1.09 patch (EM109EN.EXE / EM109DE.EXE) is NOT
+  // bundled with this program because it is copyrighted by EA/Westwood. The user
+  // must supply their own copy by placing it next to the launcher executable.
+  std::string patchName = findPatchExe();
+
+  while (patchName.empty())
+  {
+    std::string message = std::string(tr(
+      "The official Westwood/EA v1.09 patch is required but was not found.\n\n"
+      "Please place your own copy of the patch matching your discs next to EmperorReborn.exe:\n\n"
+      "    English CDs: EM109EN.EXE\n"
+      "    German CDs:  EM109DE.EXE\n\n"
+      "Folder: ",
+      "Der offizielle Westwood/EA Patch v1.09 wird benoetigt, wurde aber nicht gefunden.\n\n"
+      "Bitte lege deine eigene Kopie des Patches passend zur Sprache deiner CDs neben EmperorReborn.exe:\n\n"
+      "    Deutsche CDs:  EM109DE.EXE\n"
+      "    Englische CDs: EM109EN.EXE\n\n"
+      "Ordner: ")) + getExeDir() + tr(
+      "\n\nThis file is copyrighted by EA/Westwood and is not distributed with Emperor "
+      "Reborn. See README.txt for details.\n\n"
+      "Click OK after you have copied the file, or Cancel to quit.",
+      "\n\nDiese Datei ist urheberrechtlich geschuetzt (EA/Westwood) und wird nicht mit Emperor "
+      "Reborn ausgeliefert. Details in der INSTALL.txt.\n\n"
+      "Klicke OK, sobald die Datei dort liegt, oder Abbrechen zum Beenden.");
+
+    if (MessageBoxA(nullptr, message.c_str(),
+          tr("Emperor Reborn - v1.09 patch required", "Emperor Reborn - Patch v1.09 benoetigt"),
+          MB_OKCANCEL | MB_ICONWARNING) == IDCANCEL)
+      exit(1);
+
+    patchName = findPatchExe();
+  }
+
+  printf("Using patch %s\n", patchName.c_str());
+
+  std::error_code ec;
+  std::filesystem::copy_file(getExeDir() + "\\" + patchName, installDir + "\\" + patchName,
     std::filesystem::copy_options::overwrite_existing, ec);
   release_assert(!ec);
+
+  return patchName;
 }
 
 void extractPatchDll(std::string patchExePath, std::string patchDllPath)
@@ -52,7 +100,23 @@ void extractPatchDll(std::string patchExePath, std::string patchDllPath)
   HMODULE exeModule = LoadLibraryExA(patchExePath.c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
   release_assert(exeModule);
 
+  // The RTPatch runtime DLL is stored as resource 19274 of type 20530 in EM109EN.EXE. Other language builds
+  // of the patch were packed separately, so if the id differs just take the first resource of that type.
   HRSRC resource = FindResourceA(exeModule, MAKEINTRESOURCEA(19274), MAKEINTRESOURCEA(20530));
+  if (!resource)
+  {
+    WORD firstId = 0;
+    EnumResourceNamesA(exeModule, MAKEINTRESOURCEA(20530), [](HMODULE, LPCSTR, LPSTR name, LONG_PTR param) -> BOOL
+    {
+      if (!IS_INTRESOURCE(name))
+        return TRUE;
+      *reinterpret_cast<WORD*>(param) = WORD(reinterpret_cast<ULONG_PTR>(name));
+      return FALSE;
+    }, reinterpret_cast<LONG_PTR>(&firstId));
+
+    if (firstId)
+      resource = FindResourceA(exeModule, MAKEINTRESOURCEA(firstId), MAKEINTRESOURCEA(20530));
+  }
   release_assert(resource);
 
   void* resourceData = LockResource(LoadResource(exeModule, resource));
@@ -96,10 +160,10 @@ char* __stdcall patchCallback(int type, char* msg)
 
 void patch(const std::string& installDir)
 {
-  std::string patchExePath = installDir + "\\EM109EN.EXE";
-  std::string patchDllPath = installDir + "\\EM109EN.DLL";
+  std::string patchName = extractPatchExe(installDir);
+  std::string patchExePath = installDir + "\\" + patchName;
+  std::string patchDllPath = installDir + "\\" + patchName.substr(0, patchName.size() - 4) + ".DLL";
 
-  extractPatchExe(patchExePath);
   extractPatchDll(patchExePath, patchDllPath);
 
   HMODULE patchDll = LoadLibraryA(patchDllPath.c_str());
@@ -373,30 +437,99 @@ CD4
 disks\EMPEROR4
 )";
 
-std::string getDiskPath(const std::string& volumeName, const std::string& friendlyName)
+struct DiscInfo
 {
+  std::string root;   // "D:\"
+  std::string label;
+  DWORD serial = 0;
+};
+
+static std::vector<DiscInfo> listVolumes()
+{
+  std::vector<DiscInfo> volumes;
+  for (char drive = 'A'; drive <= 'Z'; drive++)
+  {
+    DiscInfo info;
+    info.root = std::string(1, drive) + ":\\";
+    char volumeNameBuffer[MAX_PATH] = {};
+
+    UINT oldErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS); // no "insert a disk" popups for empty drives
+    BOOL ok = GetVolumeInformationA(info.root.c_str(), volumeNameBuffer, MAX_PATH, &info.serial, NULL, NULL, NULL, 0);
+    SetErrorMode(oldErrorMode);
+
+    if (ok)
+    {
+      info.label = volumeNameBuffer;
+      volumes.push_back(info);
+    }
+  }
+  return volumes;
+}
+
+static bool isInstallDisc(const std::string& root)
+{
+  return std::filesystem::exists(root + "INSTALL\\GAME1.CAB");
+}
+
+// The house discs carry the in-game music; the game's own CD check looks for exactly this file.
+static bool isHouseDisc(const std::string& root)
+{
+  return std::filesystem::exists(root + "MUSIC.BAG") && !isInstallDisc(root);
+}
+
+// Finds one of the four game discs. The English CDs are labelled EMPEROR1..EMPEROR4, so a matching label is
+// taken straight away. Localised CDs (e.g. the German "Schlacht um Dune" set) don't necessarily use those
+// labels, so we also recognise the discs by their content: disc 1 has INSTALL\GAME1.CAB, the house discs
+// have MUSIC.BAG in the root. All house discs look the same from the outside, so for those we ask the user
+// which house they inserted. Discs we already copied are skipped by volume serial number.
+static DiscInfo getDisc(const std::string& volumeName, const std::string& friendlyName, bool installDisc,
+                        std::vector<DWORD>& usedSerials)
+{
+  auto alreadyUsed = [&](const DiscInfo& d)
+  {
+    return std::find(usedSerials.begin(), usedSerials.end(), d.serial) != usedSerials.end();
+  };
 
   while (true)
   {
-    printf("Searching for %s... ", volumeName.c_str());
+    printf("Searching for %s... ", friendlyName.c_str());
 
-    for (char drive = 'A'; drive <= 'Z'; drive++)
+    std::vector<DiscInfo> volumes = listVolumes();
+
+    for (const DiscInfo& d : volumes)
     {
-      std::string path = std::string(1, drive) + ":\\";
-      char volumeNameBuffer[MAX_PATH];
-
-      if (GetVolumeInformationA(path.c_str(), volumeNameBuffer, MAX_PATH, NULL, NULL, NULL, NULL, 0))
+      if (_stricmp(d.label.c_str(), volumeName.c_str()) == 0 && !alreadyUsed(d) &&
+          (installDisc ? isInstallDisc(d.root) : isHouseDisc(d.root)))
       {
-        if (volumeName == volumeNameBuffer)
-        {
-          printf("Found at %s\n", path.c_str());
-          return path;
-        }
+        printf("Found at %s\n", d.root.c_str());
+        usedSerials.push_back(d.serial);
+        return d;
       }
     }
 
+    for (const DiscInfo& d : volumes)
+    {
+      if (alreadyUsed(d) || !(installDisc ? isInstallDisc(d.root) : isHouseDisc(d.root)))
+        continue;
+
+      if (!installDisc)
+      {
+        std::string question = std::string(tr("Found a game disc in drive ", "Spiel-CD gefunden in Laufwerk ")) +
+          d.root + " (\"" + d.label + "\").\n\n" +
+          tr("Is this ", "Ist das ") + friendlyName + "?";
+        if (MessageBoxA(nullptr, question.c_str(), "Emperor Reborn", MB_YESNO | MB_ICONQUESTION) != IDYES)
+          continue;
+      }
+
+      printf("Found at %s (label \"%s\")\n", d.root.c_str(), d.label.c_str());
+      usedSerials.push_back(d.serial);
+      return d;
+    }
+
     printf("Not found!\n");
-    MessageBoxA(nullptr, ("Please insert / mount " + friendlyName).c_str(), "Emperor Reborn", MB_OK);
+    std::string message = std::string(tr("Please insert / mount ", "Bitte einlegen / einbinden: ")) + friendlyName;
+    if (MessageBoxA(nullptr, message.c_str(), "Emperor Reborn", MB_OKCANCEL) == IDCANCEL)
+      exit(1);
   }
 }
 
@@ -404,6 +537,16 @@ void copyFile(const std::string& source, const std::string& destination)
 {
   printf("Copying %s\n", destination.c_str());
   std::filesystem::copy(source, destination);
+}
+
+// For the loose files in the disc's INSTALL folder: their set differs a bit between languages (the German CD
+// has LIESMICH.* instead of README.*, for example), so a missing one is not an error.
+void copyFileIfExists(const std::string& source, const std::string& destination)
+{
+  if (std::filesystem::exists(source))
+    copyFile(source, destination);
+  else
+    printf("Skipping %s (not on this disc)\n", source.c_str());
 }
 
 void copyFolderRecursive(const std::string& source, const std::string& destination)
@@ -426,21 +569,19 @@ void installEmperor(const std::string& installDir)
 {
   std::filesystem::create_directories(installDir);
 
+  std::vector<DWORD> usedSerials;
+
   // Base install + patch to v1.09
   {
-    std::string diskPath = getDiskPath("EMPEROR1", "disc 1 (Install disc)");
+    std::string diskPath = getDisc("EMPEROR1", tr("disc 1 (Install disc)", "CD 1 (Installations-CD)"), true, usedSerials).root;
 
     copyFolderRecursive(diskPath + "\\INSTALL\\DATA", installDir + "\\DATA");
     copyFile(diskPath + "\\INSTALL\\EMPEROR.EXE", installDir);
-    copyFile(diskPath + "\\INSTALL\\EMPEROR.LCF", installDir);
-    copyFile(diskPath + "\\INSTALL\\NOTES.ICO", installDir);
-    copyFile(diskPath + "\\INSTALL\\PATCHGET.DAT", installDir);
-    copyFile(diskPath + "\\INSTALL\\PATCHW32.DLL", installDir);
-    copyFile(diskPath + "\\INSTALL\\README.DOC", installDir);
-    copyFile(diskPath + "\\INSTALL\\README.TXT", installDir);
-    copyFile(diskPath + "\\INSTALL\\UNINST.EXE", installDir);
-    copyFile(diskPath + "\\INSTALL\\UNINSTLL.EXE", installDir);
-    copyFile(diskPath + "\\WOLAPI", installDir + "\\WOL");
+    for (const char* name : { "EMPEROR.LCF", "NOTES.ICO", "PATCHGET.DAT", "PATCHW32.DLL", "README.DOC", "README.TXT",
+                              "LIESMICH.DOC", "LIESMICH.TXT", "UNINST.EXE", "UNINSTLL.EXE" })
+      copyFileIfExists(diskPath + "\\INSTALL\\" + name, installDir);
+    if (std::filesystem::exists(diskPath + "\\WOLAPI"))
+      copyFile(diskPath + "\\WOLAPI", installDir + "\\WOL");
 
     FILE* f = fopen((installDir + "\\Emperor.DAT").c_str(), "wb");
     release_assert(f);
@@ -464,19 +605,19 @@ void installEmperor(const std::string& installDir)
 
   // Atreides data
   {
-    std::string diskPath = getDiskPath("EMPEROR2", "disc 2 (Atredies)");
+    std::string diskPath = getDisc("EMPEROR2", tr("disc 2 (Atreides)", "CD 2 (Atreides)"), false, usedSerials).root;
     copyFolderRecursive(diskPath, installDir + "\\disks\\EMPEROR2");
   }
 
   // Harkonnen data
   {
-    std::string diskPath = getDiskPath("EMPEROR3", "disc 3 (Harkonnen)");
+    std::string diskPath = getDisc("EMPEROR3", tr("disc 3 (Harkonnen)", "CD 3 (Harkonnen)"), false, usedSerials).root;
     copyFolderRecursive(diskPath, installDir + "\\disks\\EMPEROR3");
   }
 
   // Ordos data
   {
-    std::string diskPath = getDiskPath("EMPEROR4", "disc 4 (Ordos)");
+    std::string diskPath = getDisc("EMPEROR4", tr("disc 4 (Ordos)", "CD 4 (Ordos)"), false, usedSerials).root;
     copyFolderRecursive(diskPath, installDir + "\\disks\\EMPEROR4");
   }
 

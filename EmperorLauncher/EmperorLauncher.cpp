@@ -11,7 +11,8 @@
 #include "../EmperorHooks/Settings.hpp"
 #include "../EmperorHooks/Error.hpp"
 #include "Installer.hpp"
-#include "Installer.hpp"
+#include "GameExeCheck.hpp"
+#include "Localize.hpp"
 #include <filesystem>
 #include "md5.h"
 #include "NetworkTest.hpp"
@@ -481,29 +482,37 @@ int wmain(int argc, wchar_t* argv[])
   }
 
   std::string installDir = *wideToAscii(installDirUnicode);
-  std::string gameExeMd5 = getMd5OfFile(installDir + "\\Game.exe");
-  std::string_view desiredMd5 = "7dc4fda2f6b7e8a6b70e846686a81938";
+  std::string gameExePath = installDir + "\\Game.exe";
 
-  if (gameExeMd5.empty())
+  // Fine to run: the English v1.09 exe (known md5), or any other build with the same code layout, e.g. a
+  // German v1.09 Game.exe that only differs outside the code - then every hardcoded address still matches.
+  auto gameExeIsSupported = [&]()
+  {
+    return getMd5OfFile(gameExePath) == gameExeV109EnglishMd5 || checkGameExeLayout(gameExePath) == GameExeLayout::Compatible;
+  };
+
+  if (checkGameExeLayout(gameExePath) == GameExeLayout::Missing)
   {
     // No Game.exe at all - nothing to run, so we must install (or quit).
-    if (MessageBoxA(nullptr, ("Game.exe was not found in " + installDir + ".\n\nInstall the game here now?").c_str(),
-                    "Game not found", MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
+    std::string question = std::string("Game.exe ") + tr("was not found in ", "wurde nicht gefunden in ") + installDir +
+      tr(".\n\nInstall the game here now? (English or German CDs)", ".\n\nSpiel jetzt hier installieren? (deutsche oder englische CDs)");
+    if (MessageBoxA(nullptr, question.c_str(), tr("Game not found", "Spiel nicht gefunden"), MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
       return 0;
 
     installEmperor(installDir);
 
-    if (getMd5OfFile(installDir + "\\Game.exe").empty())
+    if (getMd5OfFile(gameExePath).empty())
     {
-      MessageBoxA(nullptr, "Installation failed!", "Error", MB_OK);
+      MessageBoxA(nullptr, tr("Installation failed!", "Installation fehlgeschlagen!"), tr("Error", "Fehler"), MB_OK);
       return 1;
     }
   }
-  else if (gameExeMd5 != desiredMd5)
+
+  if (!gameExeIsSupported())
   {
-    // Game.exe exists but is not the original v1.09 build the patches are written for (e.g. another
-    // mod's patched exe, or a different patch level). Warn, but let the user run anyway if they want.
-    int choice = MessageBoxA(nullptr,
+    // Game.exe exists but is not a v1.09 build the patches are written for (e.g. another mod's patched exe,
+    // or a different patch level). Warn, but let the user run anyway if they want.
+    int choice = MessageBoxA(nullptr, tr(
         "Your Game.exe is not the original v1.09 version this launcher's features are built for "
         "(checksum mismatch - it may be from another mod or a different patch).\n\n"
         "Widescreen and the other tweaks may not work and the game could crash or be unstable. "
@@ -511,15 +520,25 @@ int wmain(int argc, wchar_t* argv[])
         "Yes - run anyway (at your own risk)\n"
         "No - (re)install the correct Game.exe\n"
         "Cancel - quit",
-        "Game.exe version mismatch", MB_YESNOCANCEL | MB_ICONWARNING);
+        "Deine Game.exe ist nicht die Version 1.09, fuer die dieser Launcher gebaut ist "
+        "(sie stammt vielleicht von einem anderen Mod oder einem anderen Patch-Stand).\n\n"
+        "Widescreen und die anderen Verbesserungen funktionieren dann evtl. nicht, das Spiel kann abstuerzen. "
+        "Du kannst es auf eigenes Risiko trotzdem starten.\n\n"
+        "Ja - trotzdem starten (auf eigenes Risiko)\n"
+        "Nein - passende Game.exe (neu) installieren\n"
+        "Abbrechen - beenden"),
+        tr("Game.exe version mismatch", "Falsche Game.exe-Version"), MB_YESNOCANCEL | MB_ICONWARNING);
 
     if (choice == IDCANCEL)
       return 0;
     if (choice == IDNO)
     {
       installEmperor(installDir);
-      if (getMd5OfFile(installDir + "\\Game.exe") != desiredMd5)
-        MessageBoxA(nullptr, "Game.exe still does not match the expected version - continuing anyway.", "Note", MB_OK);
+      if (!gameExeIsSupported())
+        MessageBoxA(nullptr,
+          tr("Game.exe still does not match the expected version - continuing anyway.",
+             "Die Game.exe passt immer noch nicht zur erwarteten Version - es geht trotzdem weiter."),
+          tr("Note", "Hinweis"), MB_OK);
     }
     // Yes: fall through and launch with the current Game.exe.
   }

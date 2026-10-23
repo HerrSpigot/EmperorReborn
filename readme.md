@@ -58,8 +58,8 @@ remaster.
 
 ## Install
 
-You provide your own copy of the game (English version) and EA's official v1.09 patch,
-`EM109EN.EXE`. That patch is copyrighted by EA and is not included here; it was a free download and
+You provide your own copy of the game (English or German version) and EA's official v1.09 patch for
+that language, `EM109EN.EXE` (or `EM109DE.EXE` for the German CDs). That patch is copyrighted by EA and is not included here; it was a free download and
 is easy to find by searching the filename. Get it from a source you trust. No game data is distributed
 in this repo.
 
@@ -72,6 +72,17 @@ First-run setup happens once. There is a plain-English walkthrough in
 [`INSTALL.txt`](INSTALL.txt).
 
 <p align="center"><img src="screenshots/launcher-ui.png" alt="The Emperor Reborn launcher" width="360"></p>
+
+### German CDs (Emperor: Schlacht um Dune)
+
+The German four-CD version installs the same way. Put the **German** v1.09 patch `EM109DE.EXE` next to
+`EmperorReborn.exe` instead of `EM109EN.EXE` (the patch has to match the language of the discs). The
+launcher recognises the discs by their content as well as by the English volume labels; for the house
+discs it asks once which house you inserted. On a German Windows its messages appear in German.
+
+Before starting the game, the launcher checks that `Game.exe` has the exact code layout of v1.09 (about
+1,600 bytes spread across the whole program). A German v1.09 `Game.exe` that passes the check runs with
+all features. If it does not pass, you get the usual "version mismatch" warning instead of a crash.
 
 ### Resolution
 

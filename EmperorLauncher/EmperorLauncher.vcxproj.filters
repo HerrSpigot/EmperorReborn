@@ -18,6 +18,9 @@
     <ClCompile Include="EmperorLauncher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GameExeCheck.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Installer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -29,6 +32,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GameExeCheck.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Localize.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="Installer.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>

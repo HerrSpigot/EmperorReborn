@@ -115,6 +115,7 @@ nmake</Command>
     <ClInclude Include="Settings.hpp" />
     <ClInclude Include="WinsockApi.hpp" />
     <ClInclude Include="PatchD3D7ResolutionLimit.hpp" />
+    <ClInclude Include="DebugLogPatchTable.hpp" />
     <ClInclude Include="PatchDebugLog.hpp" />
     <ClInclude Include="PatchRegistry.hpp" />
     <ClInclude Include="PatchWindowManagement.hpp" />

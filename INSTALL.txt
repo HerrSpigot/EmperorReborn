@@ -55,6 +55,21 @@ source you trust, see the note above.)
 
 
 ------------------------------------------------------------
+DEUTSCHE VERSION (Emperor: Schlacht um Dune)
+------------------------------------------------------------
+Die deutsche 4-CD-Version wird genauso installiert:
+- Statt EM109EN.EXE den DEUTSCHEN Patch EM109DE.EXE neben
+  EmperorReborn.exe legen. Der Patch muss zur Sprache der
+  CDs passen.
+- Der Launcher erkennt die CDs am Inhalt. Bei den Haus-CDs
+  (Atreides, Harkonnen, Ordos) fragt er einmal nach, welche
+  CD gerade eingelegt ist.
+- Vor dem Start prueft der Launcher, ob die Game.exe das
+  Code-Layout von v1.09 hat. Wenn nicht, erscheint eine
+  Warnung statt eines Absturzes.
+
+
+------------------------------------------------------------
 STEP 1 - PUT THE FILES SOMEWHERE
 ------------------------------------------------------------
 Unzip this folder anywhere you like, for example:

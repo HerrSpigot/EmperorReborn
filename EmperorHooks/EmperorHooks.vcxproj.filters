@@ -26,6 +26,9 @@
     <ClInclude Include="DoCdCheck.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="DebugLogPatchTable.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="PatchDebugLog.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
