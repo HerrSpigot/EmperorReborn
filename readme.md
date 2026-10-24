@@ -1,199 +1,236 @@
 # Emperor Reborn
 
-Emperor Reborn is a free, open-source launcher to play *Emperor: Battle for Dune* (Westwood, 2001) on
-modern Windows, tested on Windows 11 and expected to work on Windows 10, with real 16:9 widescreen,
-fullscreen scaling and working multiplayer.
+**[Deutsch](#deutsch) · [English](#english)**
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?logo=windows)
 ![License](https://img.shields.io/badge/license-MIT--0-green)
 ![Build](https://img.shields.io/badge/build-Visual%20Studio%202022%20%7C%20x86-5C2D91?logo=visualstudio)
 
-![Emperor: Battle for Dune running in 16:9 widescreen](screenshots/gameplay-2.png)
+![Emperor: Battle for Dune in 16:9 widescreen](screenshots/gameplay-2.png)
 
-I wanted to play Emperor again and ran into the usual problems with a 25-year-old game on modern
-Windows: the installer fights the OS, and even once it runs the game sits in a small box in the
-middle of the monitor. Multiplayer has been dead since Westwood Online shut down.
+---
 
-Tom Mason (wheybags) already wrote a [patch](https://github.com/wheybags/EmperorLauncher) that
-handles the hard part: installing and launching cleanly without the original disc check. This is a
-fork of his work with the few extra things I wanted, wrapped in a launcher so you do not have to
-edit the registry by hand.
+## Deutsch
 
-## What this adds on top of wheybags' patch
+Emperor Reborn ist ein kostenloser Open-Source-Launcher, mit dem *Emperor: Schlacht um Dune* /
+*Emperor: Battle for Dune* (Westwood, 2001) auf aktuellem Windows läuft: echtes 16:9-Breitbild,
+Vollbild-Skalierung und funktionierender Multiplayer. Getestet unter Windows 11, Windows 10 sollte
+ebenfalls funktionieren.
 
-- **True widescreen (16:9).** The headline feature. Every other way of running Emperor wide either
-  stretches it fat or crops the top and bottom off. This widens the actual view instead: the
-  battlefield renders at the real aspect with no stretching, and the harder half (sidebar, cursor,
-  edge scroll and menus) lines up correctly too. The in-mission sidebar/HUD layout builds on Moro's
-  widescreen patch, shared freely in the Emperor community on Discord and used with thanks; the 3D
-  camera scaling and the front-end menu and star-map fixes are this project's. As far as I can tell it
-  is the first real widescreen for this game in the 25 years since release where the whole interface
-  works.
-- **Fullscreen scaling.** Your chosen resolution fills the whole monitor instead of pillarboxing.
-  On a 4K screen the original resolutions are unusably tiny otherwise.
-- **Upscale for big, readable UI at 4K.** On a 4K monitor the sharp modes make the HUD and text tiny.
-  The "Upscale ... big UI" entries keep the desktop at its native resolution and render at a lower
-  16:9 size (2560x1440, 1920x1080 or 1280x720), then stretch that frame to fill the screen. Same big
-  interface as a low resolution, without the monitor switching display modes.
-- **Cutscene movies kept at 4:3.** The FMV cutscenes are 4:3, so widescreen stretched them fat. They now
-  play at their original aspect with black bars by default; a launcher tickbox turns the bars off and
-  stretches them wide if you prefer.
-- **Resolution dropdown.** 16:9 widescreen (1280x720, 1600x900, 1920x1080, 2560x1440) or the
-  original 4:3 modes (640x480 up to 1152x864), or match-desktop. Defaults to 1280x720. Saved between
-  runs.
-- **Hostname / DDNS in multiplayer.** Connect to `something.duckdns.org` instead of a raw IP, which
-  is handy when the host's home IP keeps changing.
-- **No VC++ Redistributable needed.** The C runtime is linked statically, so there is nothing extra to
-  install. You still run two files, `EmperorReborn.exe` and `EmperorHooks.dll`, plus your own
-  `EM109EN.EXE` on first setup.
-- **Builds its own clean copy** of the game from your discs. It does not touch any existing install.
+Diese Version ist ein Fork von [azmawee/EmperorReborn](https://github.com/azmawee/EmperorReborn) und
+ergänzt:
 
-It is still the original 2001 game with all its original content. The one real change is optional
-widescreen; leave it on a 4:3 resolution and it runs exactly like it always did. Preservation, not a
-remaster.
+- **Installation von den deutschen CDs** (*Emperor: Schlacht um Dune*) mit dem deutschen Patch
+  `EM109DE.EXE`. Die englischen CDs funktionieren weiterhin.
+- **Launcher auf Deutsch und Englisch**, umschaltbar im Launcher unter *Sprache / Language*. Ohne
+  Auswahl richtet sich die Sprache nach Windows.
+- **Prüfung der `Game.exe` vor dem Start:** Statt eines Absturzes gibt es eine verständliche Warnung,
+  falls die `Game.exe` nicht zu v1.09 passt.
 
-![The main menu in 16:9 widescreen](screenshots/menu.png)
-![Another menu view in widescreen](screenshots/menu-2.png)
-![A bigger battle in widescreen](screenshots/gameplay-3.png)
+### Download
 
-## Install
+Fertige Builds gibt es unter
+[Releases](https://github.com/HerrSpigot/EmperorReborn/releases). Sie werden automatisch per GitHub
+Actions aus diesem Repository gebaut. Die ZIP-Datei enthält `EmperorReborn.exe`, `EmperorHooks.dll`,
+die Anleitung und `SHA256SUMS.txt`.
 
-You provide your own copy of the game (English or German version) and EA's official v1.09 patch for
-that language, `EM109EN.EXE` (or `EM109DE.EXE` for the German CDs). That patch is copyrighted by EA and is not included here; it was a free download and
-is easy to find by searching the filename. Get it from a source you trust. No game data is distributed
-in this repo.
+### Was du brauchst
 
-1. Put `EmperorReborn.exe`, `EmperorHooks.dll`, and your own `EM109EN.EXE` in the same folder.
-2. Run `EmperorReborn.exe`. First launch asks for each disc in turn (Disc 1 install, then Atreides,
-   Harkonnen, Ordos) and builds a clean copy of the game. It does not need an existing install.
-3. Pick your resolution and Fullscreen in the launcher, then Play.
+- Windows 10 oder 11.
+- Deine eigenen vier Emperor-CDs (deutsch oder englisch), als echte CDs oder eingebundene Images.
+- Den offiziellen Patch v1.09 **in der Sprache deiner CDs**:
+  - deutsche CDs: `EM109DE.EXE`
+  - englische CDs: `EM109EN.EXE`
 
-First-run setup happens once. There is a plain-English walkthrough in
-[`INSTALL.txt`](INSTALL.txt).
+  Der Patch ist urheberrechtlich geschützt (EA/Westwood) und deshalb nicht enthalten. Er war ein
+  kostenloser Download und lässt sich über den Dateinamen finden. Lade ihn nur aus einer Quelle, der du
+  vertraust.
 
-<p align="center"><img src="screenshots/launcher-ui.png" alt="The Emperor Reborn launcher" width="360"></p>
+Eine VC++-Runtime ist nicht nötig.
 
-### German CDs (Emperor: Schlacht um Dune)
+### Installation
 
-The German four-CD version installs the same way. Put the **German** v1.09 patch `EM109DE.EXE` next to
-`EmperorReborn.exe` instead of `EM109EN.EXE` (the patch has to match the language of the discs). The
-launcher recognises the discs by their content as well as by the English volume labels; for the house
-discs it asks once which house you inserted. On a German Windows its messages appear in German.
+1. ZIP entpacken, z. B. nach `C:\Games\EmperorReborn\`. Der Pfad darf **keine Umlaute oder
+   Sonderzeichen** enthalten.
+2. Den Patch (`EM109DE.EXE`) in denselben Ordner legen wie `EmperorReborn.exe` und `EmperorHooks.dll`.
+3. `EmperorReborn.exe` starten. Beim ersten Start fragt der Launcher nacheinander nach den CDs:
+   CD 1 (Installation), dann Atreides, Harkonnen und Ordos. Er erkennt die CDs am Inhalt; bei den
+   Haus-CDs fragt er einmal nach, welche gerade eingelegt ist. Daraus baut er eine eigene, saubere
+   Spielkopie im Unterordner `data`. Eine bestehende Installation wird nicht angefasst.
+4. Im Launcher Auflösung und Vollbild wählen, dann **Spielen**.
 
-Before starting the game, the launcher checks that `Game.exe` has the exact code layout of v1.09 (about
-1,600 bytes spread across the whole program). A German v1.09 `Game.exe` that passes the check runs with
-all features. If it does not pass, you get the usual "version mismatch" warning instead of a crash.
+Die Einrichtung passiert nur einmal. Eine ausführliche Anleitung steht in [`INSTALL.txt`](INSTALL.txt).
 
-### Resolution
+<p align="center"><img src="screenshots/launcher-ui.png" alt="Der Emperor Reborn Launcher" width="360"></p>
 
-The launcher saves your pick. Lower resolutions give bigger, more readable text; higher ones are
-sharper with smaller UI. The three "Upscale ... big UI" modes work differently, they keep your
-desktop at its native resolution (so the monitor does not switch display modes), render the game at a
-lower 16:9 size, then stretch that frame to fill the screen. That gives the big readable interface of
-a low resolution on a high-resolution desktop. Pick the tier at or below your monitor, a 4K render on
-a 4K screen would not upscale.
+### Funktionen
 
-| Resolution | Notes |
+- **Echtes 16:9-Breitbild.** Das Schlachtfeld wird im richtigen Seitenverhältnis gezeigt, nicht
+  gestreckt oder abgeschnitten. Seitenleiste, Mauszeiger, Rand-Scrollen und Menüs passen dazu. Das
+  HUD-Layout im Einsatz basiert auf Moros Widescreen-Patch.
+- **Vollbild-Skalierung.** Die gewählte Auflösung füllt den ganzen Bildschirm.
+- **Hochskalierte Modi mit großer UI** für 4K-Monitore: Der Desktop bleibt in seiner Auflösung, das
+  Spiel rendert in 2560x1440, 1920x1080 oder 1280x720 und wird hochskaliert.
+- **Zwischensequenzen in 4:3** mit schwarzen Balken (abschaltbar).
+- **Flüssiges Karten-Scrollen**, unabhängig von der Bildrate.
+- **Multiplayer per IP oder Hostname** (auch dynamisches DNS), da Westwood Online abgeschaltet ist.
+
+### Auflösung
+
+| Auflösung | Hinweis |
 |---|---|
-| `1280 x 720` | Widescreen, default, readable text |
-| `1600 x 900` | Widescreen, sharper |
-| `1920 x 1080` | Widescreen, sharp, smaller UI |
-| `2560 x 1440` | Widescreen, sharpest |
-| `640 x 480` to `1152 x 864` | Original 4:3 modes |
-| Desktop (match screen) | Native sharpness, but the UI gets small on 4K |
-| `Upscale 4K, big UI` | Renders at 2560x1440 and stretches to fill the screen, big UI |
-| `Upscale 2K, big UI` | Renders at 1920x1080 and stretches, bigger UI |
-| `Upscale 1K, big UI` | Renders at 1280x720 and stretches, biggest UI |
+| `1280 x 720 (Breitbild)` | Standard, gut lesbare Schrift |
+| `1600 x 900 (Breitbild)` | schärfer |
+| `1920 x 1080 (Breitbild)` | scharf, kleinere UI |
+| `2560 x 1440 (Breitbild)` | am schärfsten |
+| `640 x 480` bis `1152 x 864` | Original-Modi in 4:3 |
+| `Desktop` | native Auflösung, UI auf 4K sehr klein |
+| `Hochskaliert 4K / 2K / 1K, große UI` | rendert in 2560x1440 / 1920x1080 / 1280x720 und skaliert hoch |
 
-On a 4K monitor the "Upscale ... big UI" modes are the comfortable pick, they give big readable UI
-without resizing the desktop. Otherwise skip "Desktop" and use 1280x720 widescreen (or 1920x1080 if
-you want it sharper) with Fullscreen ticked. If the image still sits centered in a small box, your GPU
-is set to "no scaling", switch it to Full-screen in the NVIDIA Control Panel (*Adjust desktop size and
-position*), or the AMD/Intel equivalent.
+Sitzt das Bild im Vollbild in einem kleinen Kasten in der Mitte, steht die Grafikkarte auf „keine
+Skalierung“. Bei NVIDIA unter *Desktopgröße und -position anpassen* die Skalierung auf *Vollbild*
+stellen, bei AMD/Intel entsprechend.
 
-## Verify your download
+### Multiplayer
 
-Every release is checksummed so you can confirm a download is the real one and not a tampered copy with
-something slipped in. The official SHA256 hashes are published on the
-[site](https://azmawee.github.io/EmperorReborn/) and in the release notes. Check the zip in PowerShell
-with
+- **Host:** *Spiel hosten / Einzelspieler* wählen und am Router **Port 4005 (UDP und TCP)** freigeben.
+- **Mitspieler:** *Mit Server verbinden* wählen und IP, Hostname oder DDNS-Namen des Hosts eintragen.
+  *Verbindung testen* erst benutzen, wenn der Host auf *Spielen* geklickt hat.
+- **Im Spiel:** **Multiplayer**, Benutzername und 8-stelliges Passwort, **Login**, **Custom**. Der Host
+  klickt **Host**, die anderen ggf. **Refresh**. Deathmatch oder Koop-Kampagne wählen, alle
+  **Accept**, der Host klickt **Play**.
+
+### Probleme
+
+- **„Falsche Game.exe-Version“:** Die `Game.exe` hat nicht das Code-Layout von v1.09 (z. B. ein anderer
+  Patch-Stand oder ein Mod). Prüfe, ob der Patch zur Sprache der CDs passt. Hilft das nicht, bitte ein
+  Issue mit der MD5 der Datei (`Get-FileHash .\data\Game.exe -Algorithm MD5`) und der Datei
+  `data\emperor.txt` anlegen.
+- **Windows Defender / SmartScreen meldet die Datei:** Ein unsignierter Launcher, der eine DLL in das
+  Spiel lädt, löst das manchmal aus. Prüfe zuerst die SHA256-Werte aus dem Release, dann *Weitere
+  Informationen* → *Trotzdem ausführen*.
+- **Vorhandene Installation:** `EmperorReborn.exe` und `EmperorHooks.dll` können auch direkt in einen
+  bestehenden v1.09-Spielordner gelegt werden. Passt die `Game.exe`, geht es ohne CDs direkt zum Launcher.
+
+### Download prüfen
 
 ```powershell
-Get-FileHash .\EmperorReborn-v2.5.zip -Algorithm SHA256
+Get-FileHash .\EmperorReborn-v2.5-de.zip -Algorithm SHA256
 ```
 
-and compare it to the published hash. The zip also carries a `SHA256SUMS.txt` listing the hashes of the
-two executables, so you can verify those after extracting. If a copy you got from anywhere does not
-match, do not run it.
+Den Wert mit der `.sha256`-Datei aus dem Release vergleichen. In der ZIP liegt außerdem
+`SHA256SUMS.txt` für die beiden Programmdateien.
 
-## Multiplayer
+### Selbst bauen
 
-Westwood Online is gone, so this uses direct IP.
-
-- Host: pick **Host game / singleplayer**, forward **port 4005 (UDP and TCP)** on the router.
-- Others: pick **Connect to server**, enter the host's IP, hostname, or DDNS name. Use **Test
-  connection** only after the host has clicked Play.
-- In game: **Multiplayer**, username + 8-character password, **Login**, **Custom**. Host clicks
-  **Host**; others **Refresh** if they don't see it. Pick Deathmatch or Co-op Campaign, everyone
-  **Accept**, host clicks **Play**.
-
-Only the parts needed for this flow are wired up, so stick to these steps. The connect box takes a
-hostname or DDNS name (DuckDNS, No-IP, Cloudflare) as well as a raw IP, which keeps the address
-stable when a home IP changes. DDNS does not open the port for you, you still forward 4005.
-
-## Building
-
-Needs **Visual Studio 2022** with the **Desktop development with C++** workload. If it complains
-about the toolset, right-click the solution and Retarget. `EM109EN.EXE` is not needed to build and
-is never embedded; the launcher reads it at runtime from the folder next to the exe.
-
-Build Release / x86, or from a Developer PowerShell:
+Benötigt **Visual Studio 2022** mit *Desktopentwicklung mit C++*. Release / x86 bauen:
 
 ```powershell
 msbuild EmperorLauncher.sln /t:Build /p:Configuration=Release /p:Platform=x86
 ```
 
-Output is `Release/EmperorReborn.exe` and `Release/EmperorHooks.dll`. Both are needed and sit in the
-same folder. The exe links the C runtime statically, so no VC++ Redist on the player's side.
-
-To package a redistributable zip (no copyrighted EA content):
+Ergebnis: `Release/EmperorReborn.exe` und `Release/EmperorHooks.dll`. Eine ZIP zum Weitergeben (ohne
+EA-Inhalte) erzeugt `package.ps1`:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\package.ps1 -Version 2.0
+powershell -ExecutionPolicy Bypass -File .\package.ps1 -Version 2.5-de
 ```
 
-wheybags wrote a good [blog post](https://wheybags.com/blog/emperor.html) on the technical details
-of the original patch.
+Jeder Push auf `german-cd-support` baut per GitHub Actions automatisch ein neues Release.
 
-## If something's off
+---
 
-- **Already have a working install (wheybags' version, or an old one)?** You can drop
-  `EmperorReborn.exe` and `EmperorHooks.dll` straight into that folder and run. If the game files
-  are already compatible it skips the disc step and goes to the launcher. People have reported this
-  working over an existing install with no reinstall.
-- **Windows Security or antivirus flags it.** An unsigned exe trips SmartScreen, and a launcher that
-  injects a DLL into the game can trip antivirus heuristics too even though it is clean. First check the
-  download against the published SHA256 above so you know it is the real build, then click More info
-  then Run anyway. Only add the install folder as a Windows Security exclusion as a last resort, if it
-  keeps getting quarantined. Source is on GitHub if you would rather build it yourself.
-- **Image sits in a black box in fullscreen.** That is the GPU upscaler set to "no scaling". Fix it
-  in the GPU control panel:
-  - NVIDIA: Adjust desktop size and position, Scaling: Full-screen.
-  - AMD, including handhelds like the ROG/Xbox Ally: turn off GPU scaling and set scaling mode to
-    preserve aspect ratio.
-  - On a 1080p screen, 1024x768 fullscreen looks good.
+## English
 
-## Credits and license
+Emperor Reborn is a free, open-source launcher to play *Emperor: Battle for Dune* (Westwood, 2001) on
+modern Windows with real 16:9 widescreen, fullscreen scaling and working multiplayer. Tested on
+Windows 11, expected to work on Windows 10.
+
+This is a fork of [azmawee/EmperorReborn](https://github.com/azmawee/EmperorReborn) (itself based on
+[wheybags' EmperorLauncher](https://github.com/wheybags/EmperorLauncher)) that adds:
+
+- **Installing from the German CDs** (*Emperor: Schlacht um Dune*) with the German v1.09 patch
+  `EM109DE.EXE`. The English CDs keep working as before.
+- **Launcher in German and English**, switchable under *Sprache / Language*. Until you pick one it
+  follows the Windows display language.
+- **Game.exe check before launch:** a clear warning instead of a crash if `Game.exe` does not match v1.09.
+
+### Download
+
+Ready-made builds are on the [Releases](https://github.com/HerrSpigot/EmperorReborn/releases) page,
+built automatically by GitHub Actions from this repository.
+
+### Install
+
+You need your own four game discs (English or German, real discs or mounted images) and the official
+v1.09 patch **matching the language of the discs**: `EM109EN.EXE` for English, `EM109DE.EXE` for
+German. The patch is copyrighted by EA and not included; it was a free download and is easy to find by
+its file name. Get it from a source you trust. No VC++ redistributable is needed.
+
+1. Unzip anywhere without non-English characters in the path, e.g. `C:\Games\EmperorReborn\`.
+2. Put the patch next to `EmperorReborn.exe` and `EmperorHooks.dll`.
+3. Run `EmperorReborn.exe`. First launch asks for each disc in turn (disc 1 install, then Atreides,
+   Harkonnen, Ordos) and builds a clean copy of the game in the `data` subfolder. Discs are recognised
+   by their content; for the house discs it asks once which house you inserted.
+4. Pick resolution and fullscreen, then **Play**.
+
+There is a step-by-step walkthrough in [`INSTALL.txt`](INSTALL.txt).
+
+### Features
+
+- **True 16:9 widescreen.** The battlefield renders at the real aspect, with the sidebar, cursor, edge
+  scroll and menus lined up. The in-mission HUD layout builds on Moro's widescreen patch.
+- **Fullscreen scaling**, and **upscale modes with big UI** for 4K screens (renders at 2560x1440,
+  1920x1080 or 1280x720 and stretches to the native desktop).
+- **Cutscenes kept at 4:3** with black bars (optional).
+- **Smooth, framerate-normalised map scrolling.**
+- **Multiplayer by IP or hostname / dynamic DNS**, since Westwood Online is gone.
+
+If the image sits in a small box in fullscreen, set GPU scaling to full-screen (NVIDIA: *Adjust desktop
+size and position*; AMD/Intel equivalent).
+
+### Multiplayer
+
+- Host: pick **Host game / singleplayer**, forward **port 4005 (UDP and TCP)**.
+- Others: pick **Connect to server** and enter the host's IP, hostname or DDNS name. Use **Test
+  connection** only after the host has clicked Play.
+- In game: **Multiplayer**, username + 8-character password, **Login**, **Custom**. Host clicks
+  **Host**, others **Refresh**. Pick Deathmatch or Co-op Campaign, everyone **Accept**, host clicks
+  **Play**.
+
+### Troubleshooting
+
+- **"Game.exe version mismatch":** `Game.exe` does not have the v1.09 code layout (other patch level or
+  a mod). Check that the patch matches the language of your discs. If that does not help, open an issue
+  with the file's MD5 (`Get-FileHash .\data\Game.exe -Algorithm MD5`) and `data\emperor.txt`.
+- **SmartScreen / antivirus warning:** an unsigned launcher that injects a DLL can trip heuristics.
+  Verify the SHA256 from the release first, then *More info* → *Run anyway*.
+- **Existing install:** you can drop `EmperorReborn.exe` and `EmperorHooks.dll` into an existing v1.09
+  game folder; if `Game.exe` matches it skips the disc step.
+
+### Building
+
+Visual Studio 2022 with the *Desktop development with C++* workload, Release / x86:
+
+```powershell
+msbuild EmperorLauncher.sln /t:Build /p:Configuration=Release /p:Platform=x86
+```
+
+`package.ps1 -Version 2.5-de` builds a redistributable zip without any EA content. wheybags wrote a
+[blog post](https://wheybags.com/blog/emperor.html) on the technical details of the original patch.
+
+---
+
+## Credits / Lizenz
 
 - Original project: [EmperorLauncher](https://github.com/wheybags/EmperorLauncher) by Tom Mason
   (wheybags), MIT-0.
-- This fork keeps MIT-0 (see [`license.txt`](license.txt)). Third-party components are listed in
-  [`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt).
-- In-game HUD / sidebar widescreen patch by **Moro**, shared freely in the Emperor community on
-  Discord and used with thanks (see [`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt)).
-- Maintained by azmawee ([GitHub](https://github.com/azmawee)).
+- [Emperor Reborn](https://github.com/azmawee/EmperorReborn) by azmawee, MIT-0.
+- In-game HUD / sidebar widescreen patch by **Moro**, shared in the Emperor community on Discord and
+  used with thanks (see [`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt)).
+- German CD support and German launcher: this fork.
 
-MIT-0 covers only the source in this repo. It grants no rights to *Emperor: Battle for Dune*, its
-data, or the EA patch, which stay with their owners. This is an unofficial fan-made tool, not
-affiliated with or endorsed by Electronic Arts or Westwood Studios. You need to own the game to use
-it.
+This fork keeps MIT-0 (see [`license.txt`](license.txt)). MIT-0 covers only the source in this repo.
+It grants no rights to *Emperor: Battle for Dune*, its data, or the EA patch, which stay with their
+owners. This is an unofficial fan-made tool, not affiliated with or endorsed by Electronic Arts or
+Westwood Studios. You need to own the game to use it.

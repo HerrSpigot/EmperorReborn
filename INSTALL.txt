@@ -64,6 +64,8 @@ Die deutsche 4-CD-Version wird genauso installiert:
 - Der Launcher erkennt die CDs am Inhalt. Bei den Haus-CDs
   (Atreides, Harkonnen, Ordos) fragt er einmal nach, welche
   CD gerade eingelegt ist.
+- Die Sprache des Launchers (Deutsch / Englisch) laesst sich
+  im Launcher unter "Sprache / Language" umstellen.
 - Vor dem Start prueft der Launcher, ob die Game.exe das
   Code-Layout von v1.09 hat. Wenn nicht, erscheint eine
   Warnung statt eines Absturzes.

@@ -210,21 +210,21 @@ int getMainMonitorHeight()
 // higher render gives a sharper (smaller) UI. They are deliberately kept below true 4K, since rendering
 // at the screen's own resolution would be a 1:1 present and bring the tiny fonts straight back. Pick the
 // tier at or below your monitor: 4K render on a 4K screen would not upscale.
-struct Resolution { int width; int height; bool widescreen; bool upscale; const wchar_t* label; };
+struct Resolution { int width; int height; bool widescreen; bool upscale; const wchar_t* label; const wchar_t* labelGerman; };
 const Resolution resolutions[] =
 {
-  { 640, 480, false, false, L"640 x 480" },
-  { 800, 600, false, false, L"800 x 600" },
-  { 1024, 768, false, false, L"1024 x 768" },
-  { 1152, 864, false, false, L"1152 x 864" },
-  { 1280, 720, true, false, L"1280 x 720 (widescreen)" },
-  { 1600, 900, true, false, L"1600 x 900 (widescreen)" },
-  { 1920, 1080, true, false, L"1920 x 1080 (widescreen)" },
-  { 2560, 1440, true, false, L"2560 x 1440 (widescreen)" },
-  { 2560, 1440, true, true, L"Upscale 4K, big UI" },
-  { 1920, 1080, true, true, L"Upscale 2K, big UI" },
-  { 1280, 720, true, true, L"Upscale 1K, big UI" },
-  { 0, 0, false, false, L"Desktop" },
+  { 640, 480, false, false, L"640 x 480", L"640 x 480" },
+  { 800, 600, false, false, L"800 x 600", L"800 x 600" },
+  { 1024, 768, false, false, L"1024 x 768", L"1024 x 768" },
+  { 1152, 864, false, false, L"1152 x 864", L"1152 x 864" },
+  { 1280, 720, true, false, L"1280 x 720 (widescreen)", L"1280 x 720 (Breitbild)" },
+  { 1600, 900, true, false, L"1600 x 900 (widescreen)", L"1600 x 900 (Breitbild)" },
+  { 1920, 1080, true, false, L"1920 x 1080 (widescreen)", L"1920 x 1080 (Breitbild)" },
+  { 2560, 1440, true, false, L"2560 x 1440 (widescreen)", L"2560 x 1440 (Breitbild)" },
+  { 2560, 1440, true, true, L"Upscale 4K, big UI", L"Hochskaliert 4K, gro\u00dfe UI" },
+  { 1920, 1080, true, true, L"Upscale 2K, big UI", L"Hochskaliert 2K, gro\u00dfe UI" },
+  { 1280, 720, true, true, L"Upscale 1K, big UI", L"Hochskaliert 1K, gro\u00dfe UI" },
+  { 0, 0, false, false, L"Desktop", L"Desktop" },
 };
 
 
@@ -242,6 +242,12 @@ HWND serverAddressTextbox = nullptr;
 HWND playButton = nullptr;
 HWND testNetworkButton = nullptr;
 
+HWND settingsLabel = nullptr;
+HWND resolutionLabel = nullptr;
+HWND debugSettingsLabel = nullptr;
+HWND languageLabel = nullptr;
+HWND languageCombo = nullptr;
+
 HWND githubLink = nullptr;
 HWND facebookLink = nullptr;
 
@@ -255,6 +261,42 @@ bool playClicked = false;
 
 Settings settings;
 
+
+// Language picker entries, in combo order. "" (follow Windows) is only the initial default, once the user picks
+// one it is saved.
+const char* const languageCodes[] = { "de", "en" };
+
+// (Re)sets every visible text in the launcher window for the current language, so switching the language in
+// the picker takes effect immediately without restarting.
+void applyLanguageTexts()
+{
+  SetWindowTextW(settingsLabel, trw(L"Settings", L"Einstellungen"));
+  SetWindowTextW(fullscreenCheckbox, trw(L"Fullscreen", L"Vollbild"));
+  SetWindowTextW(resolutionLabel, trw(L"Resolution", L"Aufl\u00f6sung"));
+  SetWindowTextW(cutscene43Checkbox, trw(L"Cutscene movies / FMV in 4:3 (black bars)", L"Zwischensequenzen in 4:3 (schwarze Balken)"));
+  SetWindowTextW(smoothScrollCheckbox, trw(L"Smooth map scrolling", L"Fl\u00fcssiges Karten-Scrollen"));
+  SetWindowTextW(hostGameRadio, trw(L"Host game / singleplayer", L"Spiel hosten / Einzelspieler"));
+  SetWindowTextW(portsLabel, trw(L"Host must open port 4005 UDP and TCP", L"Host muss Port 4005 (UDP und TCP) freigeben"));
+  SetWindowTextW(connectToServerRadio, trw(L"Connect to server", L"Mit Server verbinden"));
+  SetWindowTextW(serverAddressLabel, trw(L"Server IP or hostname (dynamic DNS supported)", L"Server-IP oder Hostname (auch dynamisches DNS)"));
+  SetWindowTextW(testNetworkButton, trw(L"Test connection", L"Verbindung testen"));
+  SetWindowTextW(debugSettingsLabel, trw(L"Debug settings", L"Debug-Einstellungen"));
+  SetWindowTextW(pauseOnStartupCheckbox, trw(L"Pause on startup", L"Beim Start pausieren"));
+  SetWindowTextW(forceCursorVisibleCheckbox, trw(L"Force cursor visible", L"Mauszeiger immer zeigen"));
+  SetWindowTextW(disableCursorCaptureCheckbox, trw(L"Disable cursor capture", L"Mauszeiger nicht einfangen"));
+  SetWindowTextW(playButton, trw(L"Play", L"Spielen"));
+
+  // Refill the resolution list in the new language, keeping the selection.
+  LRESULT selected = SendMessageW(resolutionCombo, CB_GETCURSEL, 0, 0);
+  SendMessageW(resolutionCombo, CB_RESETCONTENT, 0, 0);
+  for (const Resolution& res : resolutions)
+    SendMessageW(resolutionCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(uiIsGerman() ? res.labelGerman : res.label));
+  if (selected != CB_ERR)
+    SendMessageW(resolutionCombo, CB_SETCURSEL, selected, 0);
+
+  SendMessageW(languageCombo, CB_SETCURSEL, uiIsGerman() ? 0 : 1, 0);
+  InvalidateRect(window, nullptr, TRUE);
+}
 
 void refreshDerivedState()
 {
@@ -326,6 +368,19 @@ LRESULT onSmoothScrollCheckboxClicked(HWND hwnd, UINT message, WPARAM wParam, LP
   settings.smoothScroll = SendMessage(smoothScrollCheckbox, BM_GETCHECK, 0, 0) == BST_CHECKED;
   settings.writeSettings();
 
+  return CallWindowProc(defWndProc, hwnd, message, wParam, lParam);
+}
+
+LRESULT onLanguageChanged(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+  int index = int(SendMessageA(languageCombo, CB_GETCURSEL, 0, 0));
+  if (index >= 0 && index < int(std::size(languageCodes)))
+  {
+    settings.language = languageCodes[index];
+    settings.writeSettings();
+    setLanguage(settings.language);
+    applyLanguageTexts();
+  }
   return CallWindowProc(defWndProc, hwnd, message, wParam, lParam);
 }
 
@@ -418,6 +473,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
   if (message == WM_COMMAND && HIWORD(wParam) == BN_CLICKED && reinterpret_cast<HWND>(lParam) == cutscene43Checkbox) return onCutscene43CheckboxClicked(hwnd, message, wParam, lParam);
   if (message == WM_COMMAND && HIWORD(wParam) == BN_CLICKED && reinterpret_cast<HWND>(lParam) == smoothScrollCheckbox) return onSmoothScrollCheckboxClicked(hwnd, message, wParam, lParam);
   if (message == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE && reinterpret_cast<HWND>(lParam) == resolutionCombo) return onResolutionChanged(hwnd, message, wParam, lParam);
+  if (message == WM_COMMAND && HIWORD(wParam) == CBN_SELCHANGE && reinterpret_cast<HWND>(lParam) == languageCombo) return onLanguageChanged(hwnd, message, wParam, lParam);
   if (message == WM_COMMAND && HIWORD(wParam) == BN_CLICKED && reinterpret_cast<HWND>(lParam) == hostGameRadio) return onServerOrClientRadioClicked(hwnd, message, wParam, lParam);
   if (message == WM_COMMAND && HIWORD(wParam) == BN_CLICKED && reinterpret_cast<HWND>(lParam) == connectToServerRadio) return onServerOrClientRadioClicked(hwnd, message, wParam, lParam);
   if (message == WM_COMMAND && HIWORD(wParam) == EN_CHANGE && reinterpret_cast<HWND>(lParam) == serverAddressTextbox) return onServerAddressTextChanged(hwnd, message, wParam, lParam);
@@ -464,6 +520,10 @@ std::string getMd5OfFile(const std::string& path)
 
 int wmain(int argc, wchar_t* argv[])
 {
+  // Needed before anything shows a message, so the installer prompts already use the chosen language.
+  settings.readSettings();
+  setLanguage(settings.language);
+
   std::wstring installDirUnicode;
   if (argc > 1)
     installDirUnicode = argv[1];
@@ -476,7 +536,9 @@ int wmain(int argc, wchar_t* argv[])
   {
     if (!wideToAscii(item).has_value())
     {
-      MessageBoxW(nullptr, (item + L" contains non-English characters, please move to a folder with only English characters").c_str(), L"Bad install path", MB_OK);
+      MessageBoxW(nullptr, (item + trw(L" contains non-English characters, please move to a folder with only English characters",
+                                       L" enth\u00e4lt Sonderzeichen (z. B. Umlaute), bitte in einen Ordner nur mit englischen Buchstaben verschieben")).c_str(),
+                  trw(L"Bad install path", L"Ung\u00fcltiger Installationspfad"), MB_OK);
       return 1;
     }
   }
@@ -575,45 +637,44 @@ int wmain(int argc, wchar_t* argv[])
     int y = ySpace + headerH;
     int x = 30;
 
-    CreateWindowEx(0, WC_STATIC, L"Settings", WS_CHILD | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
+    settingsLabel = CreateWindowEx(0, WC_STATIC, L"", WS_CHILD | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
-    fullscreenCheckbox = CreateWindowEx(0, WC_BUTTON, L"Fullscreen", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 104, 24, window, nullptr, nullptr, nullptr);
+    fullscreenCheckbox = CreateWindowEx(0, WC_BUTTON, L"", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 140, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
-    CreateWindowEx(0, WC_STATIC, L"Resolution", WS_CHILD | WS_VISIBLE, x, y + 4, 80, 24, window, nullptr, nullptr, nullptr);
+    resolutionLabel = CreateWindowEx(0, WC_STATIC, L"", WS_CHILD | WS_VISIBLE, x, y + 4, 80, 24, window, nullptr, nullptr, nullptr);
     // The height here also controls how tall the drop-down list is, so make it big enough for all entries.
     resolutionCombo = CreateWindowEx(0, WC_COMBOBOX, nullptr, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL, x + 90, y, 200, 240, window, nullptr, nullptr, nullptr);
-    for (const Resolution& res : resolutions)
-      SendMessageW(resolutionCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(res.label));
+    // Entries are filled in by applyLanguageTexts.
     // Make the drop-down list itself wider than the box so the longer "(widescreen)" labels are not clipped.
     SendMessageW(resolutionCombo, CB_SETDROPPEDWIDTH, 230, 0);
     y += ySpace;
 
-    cutscene43Checkbox = CreateWindowEx(0, WC_BUTTON, L"Cutscene movies / FMV in 4:3 (black bars)", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 290, 24, window, nullptr, nullptr, nullptr);
+    cutscene43Checkbox = CreateWindowEx(0, WC_BUTTON, L"", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 290, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
-    smoothScrollCheckbox = CreateWindowEx(0, WC_BUTTON, L"Smooth map scrolling", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 290, 24, window, nullptr, nullptr, nullptr);
+    smoothScrollCheckbox = CreateWindowEx(0, WC_BUTTON, L"", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 290, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
     y += ySpace;
 
-    hostGameRadio = CreateWindowEx(0, WC_BUTTON, L"Host game / singleplayer", WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON, x, y, 200, 24, window, nullptr, nullptr, nullptr);
+    hostGameRadio = CreateWindowEx(0, WC_BUTTON, L"", WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON, x, y, 200, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
-    portsLabel = CreateWindowEx(0, WC_STATIC, L"Host must open port 4005 UDP and TCP", WS_CHILD | WS_VISIBLE, x + 20, y, 300, 24, window, nullptr, nullptr, nullptr);
+    portsLabel = CreateWindowEx(0, WC_STATIC, L"", WS_CHILD | WS_VISIBLE, x + 20, y, 300, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
-    connectToServerRadio = CreateWindowEx(0, WC_BUTTON, L"Connect to server", WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON | WS_GROUP, x, y, 200, 24, window, nullptr, nullptr, nullptr);
+    connectToServerRadio = CreateWindowEx(0, WC_BUTTON, L"", WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON | WS_GROUP, x, y, 200, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
-    serverAddressLabel = CreateWindowEx(0, WC_STATIC, L"Server IP or hostname (dynamic DNS supported)", WS_CHILD | WS_VISIBLE, x + 20, y, 320, 24, window, nullptr, nullptr, nullptr);
+    serverAddressLabel = CreateWindowEx(0, WC_STATIC, L"", WS_CHILD | WS_VISIBLE, x + 20, y, 320, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
     serverAddressTextbox = CreateWindowEx(WS_EX_CLIENTEDGE, WC_EDIT, L"host IP or hostname", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, x + 20, y, 200, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
-    testNetworkButton = CreateWindowEx(0, WC_BUTTON, L"Test connection", WS_CHILD | WS_VISIBLE, x + 20, y, 124, 24, window, nullptr, nullptr, nullptr);
+    testNetworkButton = CreateWindowEx(0, WC_BUTTON, L"", WS_CHILD | WS_VISIBLE, x + 20, y, 140, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
 
@@ -625,23 +686,33 @@ int wmain(int argc, wchar_t* argv[])
     int y = ySpace + headerH;
     int x = 330;
 
-    CreateWindowEx(0, WC_STATIC, L"Debug settings", WS_CHILD | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
+    languageLabel = CreateWindowEx(0, WC_STATIC, L"Sprache / Language", WS_CHILD | WS_VISIBLE, x, y, 190, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
-    pauseOnStartupCheckbox = CreateWindowEx(0, WC_BUTTON, L"Pause on startup", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
+    languageCombo = CreateWindowEx(0, WC_COMBOBOX, nullptr, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, x, y, 150, 120, window, nullptr, nullptr, nullptr);
+    SendMessageW(languageCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"Deutsch"));
+    SendMessageW(languageCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"English"));
     y += ySpace;
 
-    forceCursorVisibleCheckbox = CreateWindowEx(0, WC_BUTTON, L"Force cursor visible", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
-    disableCursorCaptureCheckbox = CreateWindowEx(0, WC_BUTTON, L"Disable cursor capture", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
+    debugSettingsLabel = CreateWindowEx(0, WC_STATIC, L"", WS_CHILD | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
+    y += ySpace;
+
+    pauseOnStartupCheckbox = CreateWindowEx(0, WC_BUTTON, L"", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
+    y += ySpace;
+
+    forceCursorVisibleCheckbox = CreateWindowEx(0, WC_BUTTON, L"", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
+    y += ySpace;
+
+    disableCursorCaptureCheckbox = CreateWindowEx(0, WC_BUTTON, L"", WS_CHILD | BS_AUTOCHECKBOX | WS_VISIBLE, x, y, 200, 24, window, nullptr, nullptr, nullptr);
     y += ySpace;
 
 
     yMax = std::max(yMax, y + 8);
   }
 
-  playButton = CreateWindowEx(0, WC_BUTTON, L"Play", WS_CHILD | WS_VISIBLE, (width - 140) / 2, yMax, 140, 34, window, nullptr, nullptr, nullptr);
+  playButton = CreateWindowEx(0, WC_BUTTON, L"", WS_CHILD | WS_VISIBLE, (width - 140) / 2, yMax, 140, 34, window, nullptr, nullptr, nullptr);
 
   // credits / author links (links clickable - open in browser)
   {
@@ -662,6 +733,7 @@ int wmain(int argc, wchar_t* argv[])
 
   defWndProc = reinterpret_cast<WNDPROC>(SetWindowLongPtr(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc)));
 
+  applyLanguageTexts();
   loadAndApplySettings();
 
   ShowWindow(window, SW_SHOW);
